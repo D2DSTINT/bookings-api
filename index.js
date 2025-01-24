@@ -21,7 +21,7 @@ mongoose
     .catch((err) => console.error("Error connecting to MongoDB:", err));
 
 // Route to save booking data
-app.post("/api/bookings", async (req, res) => {
+app.post("/", async (req, res) => {
     try {
         const { name, email, contact, address, services, timing, date } =
             req.body;
