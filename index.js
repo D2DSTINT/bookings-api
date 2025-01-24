@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 dotenv.config();
 
-export const app = express();
+const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -57,3 +57,5 @@ app.post("/", async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+
+export default app;
