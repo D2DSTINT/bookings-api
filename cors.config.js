@@ -3,7 +3,7 @@ dotenv.config();
 
 const allowedOrigins =
     process.env.NODE_ENV === "production"
-        ? [process.env.ORIGIN_URL, process.env.ORIGIN_IP]
+        ? [process.env.ORIGIN_URL]
         : [
               `http://localhost:${process.env.PORT}`,
               `http://127.0.0.1:${process.env.PORT}`,
