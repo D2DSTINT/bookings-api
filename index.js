@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors(corsOptions));
+
 app.use(bodyParser.json());
 app.options("*", cors(corsOptions));
 
@@ -35,17 +35,20 @@ async function connectToDatabase() {
     }
 }
 
+app.get("/", (req, res) => {
+    res.redirect(308, "/api/healthcheck");
+});
+
 app.get("/api/healthcheck", (req, res) => {
     const healthcheck = {
         uptime: process.uptime(),
         message: "Server is running",
-        timestamp: Date.now(),
     };
     res.status(200).json(healthcheck);
 });
 
 // Route to save booking data
-app.post("/api/booking", async (req, res) => {
+app.post("/api/booking", cors(corsOptions), async (req, res) => {
     try {
         await connectToDatabase();
 
@@ -68,7 +71,6 @@ app.post("/api/booking", async (req, res) => {
 
         res.status(201).json({
             message: "Booking saved successfully",
-            // booking: savedBooking
         });
     } catch (error) {
         console.error("Error saving booking:", error);
@@ -79,7 +81,6 @@ app.post("/api/booking", async (req, res) => {
     }
 });
 
-// Start server
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
