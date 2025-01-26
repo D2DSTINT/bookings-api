@@ -15,16 +15,40 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
-app.options("*", cors());
-// Connect to MongoDB
-mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB connected"))
-    .catch((err) => console.error("Error connecting to MongoDB:", err));
+app.options("*", cors(corsOptions));
+
+let isConnected = false; // Track the connection state
+
+async function connectToDatabase() {
+    if (!isConnected) {
+        try {
+            await mongoose.connect(process.env.MONGO_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+            });
+            isConnected = true;
+            console.log("MongoDB connected");
+        } catch (error) {
+            console.error("Error connecting to MongoDB:", error);
+            throw error; // Rethrow the error to handle it upstream
+        }
+    }
+}
+
+app.get("/api/healthcheck", (req, res) => {
+    const healthcheck = {
+        uptime: process.uptime(),
+        message: "Server is running",
+        timestamp: Date.now(),
+    };
+    res.status(200).json(healthcheck);
+});
 
 // Route to save booking data
 app.post("/api/booking", async (req, res) => {
     try {
+        await connectToDatabase();
+
         const { name, email, contact, address, services, timing, date } =
             req.body;
 
