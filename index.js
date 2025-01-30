@@ -2,6 +2,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import Booking from "./models/booking.js"; // Import the Booking model
+import dashboardMetric from "./models/dashboard.metric.js";
 import bodyParser from "body-parser";
 import cors from "cors";
 import corsOptions from "./cors.config.js";
@@ -52,7 +53,7 @@ app.post("/api/booking", cors(corsOptions), async (req, res) => {
 
         const { service, customer, date, time, address, status } = req.body;
         const id = crypto.randomBytes(3).toString("hex").toUpperCase();
-// Create a new booking
+        // Create a new booking
         const newBooking = new Booking({
             id, // Ensure a unique ID is generated or provided
             service,
@@ -72,10 +73,13 @@ app.post("/api/booking", cors(corsOptions), async (req, res) => {
             status: status || "Pending", // Default to 'Pending' if not provided
         });
 
-
         // Save booking to MongoDB
         const savedBooking = await newBooking.save();
-
+        await dashboardMetric.findOneAndUpdate(
+            {},
+            { $inc: { totalBookings: 1, pendingBookings: 1 } },
+            { upsert: true, new: true } // Creates a document if it doesn't exist
+        );
         res.status(201).json({
             message: "Booking saved successfully",
         });
