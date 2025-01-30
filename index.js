@@ -49,19 +49,27 @@ app.post("/api/booking", cors(corsOptions), async (req, res) => {
     try {
         await connectToDatabase();
 
-        const { name, email, contact, address, services, timing, date } =
-            req.body;
+        const { id, service, customer, date, time, address, status } = req.body;
 
-        // Create a new booking
+// Create a new booking
         const newBooking = new Booking({
-            name,
-            email,
-            contact,
-            address,
-            services,
-            timing,
+            id, // Ensure a unique ID is generated or provided
+            service,
+            customer: {
+                name: customer.name,
+                phone: customer.phone,
+            },
             date,
+            time, // Changed from 'timing' to 'time' to match schema
+            address: {
+                fullAddress: address.fullAddress,
+                houseNumber: address.houseNumber,
+                landmark: address.landmark || "N/A",
+                pincode: address.pincode || "N/A",
+            },
+            status: status || "Pending", // Default to 'Pending' if not provided
         });
+
 
         // Save booking to MongoDB
         const savedBooking = await newBooking.save();
