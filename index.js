@@ -6,6 +6,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import corsOptions from "./cors.config.js";
 import dotenv from "dotenv";
+import crypto from "node:crypto";
 
 dotenv.config();
 
@@ -49,8 +50,8 @@ app.post("/api/booking", cors(corsOptions), async (req, res) => {
     try {
         await connectToDatabase();
 
-        const { id, service, customer, date, time, address, status } = req.body;
-
+        const { service, customer, date, time, address, status } = req.body;
+        const id = crypto.randomBytes(3).toString("hex").toUpperCase();
 // Create a new booking
         const newBooking = new Booking({
             id, // Ensure a unique ID is generated or provided
