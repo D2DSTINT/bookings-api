@@ -59,6 +59,7 @@ app.post("/api/booking", cors(corsOptions), async (req, res) => {
             customer: {
                 name: customer.name,
                 phone: customer.phone,
+                email: customer.email,
             },
             date,
             time, // Changed from 'timing' to 'time' to match schema
