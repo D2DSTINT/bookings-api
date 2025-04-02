@@ -20,18 +20,32 @@ app.use(bodyParser.json());
 app.options("*", cors(corsOptions));
 
 let isConnected = false; // Track the connection state
+let dbConnectionPromise = null;
+
+const mongooseOptions = {
+    maxPoolSize: 10,
+    minPoolSize: 5,
+    socketTimeoutMS: 45000,
+    serverSelectionTimeoutMS: 5000,
+};
 
 async function connectToDatabase() {
+    if (dbConnectionPromise) return dbConnectionPromise;
+
     if (!isConnected) {
-        try {
-            await mongoose.connect(process.env.MONGO_URI);
-            isConnected = true;
-            console.log("MongoDB connected");
-        } catch (error) {
-            console.error("Error connecting to MongoDB:", error);
-            throw error; // Rethrow the error to handle it upstream
-        }
+        dbConnectionPromise = mongoose
+            .connect(process.env.MONGO_URI, mongooseOptions)
+            .then(() => {
+                isConnected = true;
+                console.log("MongoDB connected");
+            })
+            .catch((error) => {
+                console.error("Error connecting to MongoDB:", error);
+                dbConnectionPromise = null;
+                throw error;
+            });
     }
+    return dbConnectionPromise;
 }
 
 app.get("/", (req, res) => {
@@ -48,14 +62,22 @@ app.get("/api/healthcheck", (req, res) => {
 
 // Route to save booking data
 app.post("/api/booking", cors(corsOptions), async (req, res) => {
+    const { service, customer, date, time, address, status } = req.body;
+    const id = crypto.randomBytes(3).toString("hex").toUpperCase();
+
+    // Return immediately with booking ID
+    res.status(202).json({
+        message: "Booking request received",
+        bookingId: id,
+        status: "Processing",
+    });
+
+    // Process in background
     try {
         await connectToDatabase();
 
-        const { service, customer, date, time, address, status } = req.body;
-        const id = crypto.randomBytes(3).toString("hex").toUpperCase();
-        // Create a new booking
         const newBooking = new Booking({
-            id, // Ensure a unique ID is generated or provided
+            id,
             service,
             customer: {
                 name: customer.name,
@@ -63,32 +85,25 @@ app.post("/api/booking", cors(corsOptions), async (req, res) => {
                 email: customer.email,
             },
             date,
-            time, // Changed from 'timing' to 'time' to match schema
+            time,
             address: {
                 fullAddress: address.fullAddress,
                 houseNumber: address.houseNumber,
                 landmark: address.landmark || "N/A",
                 pincode: address.pincode || "N/A",
             },
-            status: status || "Pending", // Default to 'Pending' if not provided
+            status: status || "Pending",
         });
 
-        // Save booking to MongoDB
-        const savedBooking = await newBooking.save();
+        await newBooking.save();
         await dashboardMetric.findOneAndUpdate(
             {},
             { $inc: { totalBookings: 1, pendingBookings: 1 } },
-            { upsert: true, new: true } // Creates a document if it doesn't exist
+            { upsert: true, new: true }
         );
-        res.status(201).json({
-            message: "Booking saved successfully",
-        });
     } catch (error) {
-        console.error("Error saving booking:", error);
-        res.status(500).json({
-            message: "Failed to save booking",
-            error: error.message,
-        });
+        console.error("Error processing booking:", error);
+        // Consider implementing a retry mechanism or error queue
     }
 });
 
